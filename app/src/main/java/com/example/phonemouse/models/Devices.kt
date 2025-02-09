@@ -1,6 +1,7 @@
 package com.example.phonemouse.models
 
 import android.util.Log
+import com.example.phonemouse.PHONE_MOUSE_TAG
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -33,7 +34,7 @@ class Device(var name: String, var address: InetAddress, var tcp_port: Int, var 
         if (this.isConnected()) { return; }
         tcp_socket = Socket(address, tcp_port)
         udp_socket = DatagramSocket(udp_port)
-        Log.d("PhoneMouse", "Connected!")
+        Log.d(PHONE_MOUSE_TAG, "Connected!")
         setState(PhoneMouseState.Idle)
     }
 
@@ -41,19 +42,36 @@ class Device(var name: String, var address: InetAddress, var tcp_port: Int, var 
         tcp_socket?.let {
             it.close()
             tcp_socket = null
-            Log.d("PhoneMouse", "Disconnected TCP")
+            Log.d(PHONE_MOUSE_TAG, "Disconnected TCP")
         }
 
         udp_socket?.let {
             it.close()
             udp_socket = null
-            Log.d("PhoneMouse", "Disconnected UDP")
+            Log.d(PHONE_MOUSE_TAG, "Disconnected UDP")
         }
     }
 
-    fun setState(state: PhoneMouseState) {
+    fun sendTCPPacketMessage(packetMessage: PacketMessage) {
         if (!isConnected()) { return; }
-        tcp_socket?.getOutputStream()?.write(byteArrayOf(0.toByte(), state.byte))
+
+        val packetMessageBytes = packetMessage.toBytes()
+        Log.d(PHONE_MOUSE_TAG, "Sending TCP packet `${packetMessageBytes}`")
+
+        tcp_socket?.getOutputStream()?.write(packetMessageBytes)
+    }
+
+    fun sendUDPPacketMessage(packetMessage: PacketMessage) {
+        if (!isConnected()) { return; }
+
+        val packetMessageBytes = packetMessage.toBytes()
+        Log.d(PHONE_MOUSE_TAG, "Sending UDP packet `${packetMessageBytes}`")
+
+        udp_socket?.send(DatagramPacket(packetMessageBytes, packetMessageBytes.size, address, udp_port))
+    }
+
+    fun setState(state: PhoneMouseState) {
+        sendTCPPacketMessage(PacketMessage(PacketIdentifier.SwitchController, state))
     }
 }
 
@@ -67,11 +85,11 @@ class Devices {
         val packet = DatagramPacket(ByteArray(32), 32)
 
         while (running) {
-            Log.d("PhoneMouse", "Listening for device responses")
+            Log.d(PHONE_MOUSE_TAG, "Listening for device responses")
             try {
                 multicastSocket.receive(packet)
             } catch (err: IOException) {
-                Log.w("PhoneMouse", "Receiving ping responses from devices interrupted. $err")
+                Log.w(PHONE_MOUSE_TAG, "Receiving ping responses from devices interrupted. $err")
                 return
             }
 
@@ -79,7 +97,7 @@ class Devices {
             // TODO: Check if the detected device is the current device
             if (detectedDevices.contains(detectedDevice)) { return; }
 
-            Log.d("PhoneMouse", "Detected device: $detectedDevice")
+            Log.d(PHONE_MOUSE_TAG, "Detected device: $detectedDevice")
             detectedDevices.add(detectedDevice)
 
             if (onDeviceDetected != null) {
@@ -90,14 +108,14 @@ class Devices {
 
     private fun sendOutPings(multicastSocket: MulticastSocket, pingCount: Int, interval: Long, socketAddress: InetSocketAddress) {
         for (i in 1..pingCount) {
-            Log.d("PhoneMouse", "Sending out a multicast ping")
-            multicastSocket.send(DatagramPacket("GTF".toByteArray(), 3, socketAddress))
+            Log.d(PHONE_MOUSE_TAG, "Sending out a multicast ping")
+            multicastSocket.send(DatagramPacket(byteArrayOf(4), 1, socketAddress))
             Thread.sleep(interval)
         }
     }
 
     fun detectDevices(port: Int = 2856, pingCount: Int = 5, interval: Long = 1000, onDeviceDetected: ((detectedDevice: Device, detectedDevices: List<Device>) -> Unit)? = null): List<Device> {
-        Log.d("PhoneMouse", "Detecting devices")
+        Log.d(PHONE_MOUSE_TAG, "Detecting devices")
         val detectedDevices: MutableList<Device> = mutableListOf()
         val multicastSocket = MulticastSocket()
 

@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.phonemouse.models.PhoneMouseState
 import com.example.phonemouse.ui.screens.DevicesScreen
 import com.example.phonemouse.ui.screens.MainScreen
 import com.example.phonemouse.ui.screens.SettingsScreen
@@ -61,10 +63,23 @@ enum class PhoneMouseRoutes {
     GravityController,
 }
 
+const val PHONE_MOUSE_TAG = "PhoneMouse"
+
 @Composable
 fun Main() {
     val navController = rememberNavController()
     val devicesViewModel: DevicesViewModel = viewModel()
+
+    // Change the device state
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntryFlow.collect { backStackEntry ->
+            when (backStackEntry.destination.route) {
+                PhoneMouseRoutes.GravityController.name -> devicesViewModel.setState(PhoneMouseState.Gravity)
+                PhoneMouseRoutes.TabletController.name -> devicesViewModel.setState(PhoneMouseState.Tablet)
+                else -> devicesViewModel.setState(PhoneMouseState.Idle)
+            }
+        }
+    }
 
     PhoneMouseTheme {
         Box(

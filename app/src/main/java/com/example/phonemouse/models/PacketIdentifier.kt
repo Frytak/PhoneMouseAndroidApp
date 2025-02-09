@@ -1,7 +1,6 @@
 package com.example.phonemouse.models
 
 import android.util.Log
-import androidx.compose.runtime.Composable
 import com.example.phonemouse.PHONE_MOUSE_TAG
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -53,10 +52,10 @@ enum class PacketIdentifier(val byte: Byte): Packet {
             val byte = bytes.get()
 
             return when (byte) {
-                0.toByte() -> PacketIdentifier.SwitchController
-                1.toByte() -> PacketIdentifier.Gravity
-                2.toByte() -> PacketIdentifier.Key
-                3.toByte() -> PacketIdentifier.Touch
+                0.toByte() -> SwitchController
+                1.toByte() -> Gravity
+                2.toByte() -> Key
+                3.toByte() -> Touch
                 else -> {
                     val error = "Invalid `Packets`. Got byte `${byte.toString()}`"
                     Log.e(PHONE_MOUSE_TAG, error)
@@ -86,10 +85,10 @@ enum class PhoneMouseState(val byte: Byte): Packet {
             val byte = bytes.get()
 
             return when (byte) {
-                0.toByte() -> PhoneMouseState.Idle
-                1.toByte() -> PhoneMouseState.Gravity
-                2.toByte() -> PhoneMouseState.Touchpad
-                3.toByte() -> PhoneMouseState.Tablet
+                0.toByte() -> Idle
+                1.toByte() -> Gravity
+                2.toByte() -> Touchpad
+                3.toByte() -> Tablet
                 else -> {
                     val error = "Invalid PhoneMouseState. Got byte `${byte.toString()}`"
                     Log.e(PHONE_MOUSE_TAG, error)

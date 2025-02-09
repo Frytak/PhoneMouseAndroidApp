@@ -119,12 +119,12 @@ class Devices {
         val detectedDevices: MutableList<Device> = mutableListOf()
         val multicastSocket = MulticastSocket()
 
-        var running = true;
+        var running = true
         Thread { listenForDevices(multicastSocket, detectedDevices, running, onDeviceDetected) }.start()
 
         // TODO: Get multicast address
         sendOutPings(multicastSocket, pingCount, interval, InetSocketAddress("192.168.200.255", port))
-        running = false;
+        running = false
         multicastSocket.close()
 
         return detectedDevices

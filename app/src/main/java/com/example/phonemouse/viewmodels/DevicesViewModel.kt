@@ -29,15 +29,15 @@ class DevicesViewModel : ViewModel() {
 
     fun detectDevices(port: Int = 2856) {
         if (_isDetectingDevices.value) { return; }
-        _isDetectingDevices.value = true;
+        _isDetectingDevices.value = true
 
         Thread {
-            _detectedDevices.value = devices.detectDevices(2856) { detectedDevice, detectedDevices ->
+            _detectedDevices.value = devices.detectDevices(port) { detectedDevice, detectedDevices ->
                 // Remember to create a new list
                 _detectedDevices.value = detectedDevices.toList()
             }
 
-            _isDetectingDevices.value = false;
+            _isDetectingDevices.value = false
         }.start()
     }
 
@@ -58,7 +58,7 @@ class DevicesViewModel : ViewModel() {
             Log.d(PHONE_MOUSE_TAG, "Connecting to device...")
             val device = device.copy()
             device.connect()
-            _connectedDevice.value = device;
+            _connectedDevice.value = device
         }.start()
     }
 

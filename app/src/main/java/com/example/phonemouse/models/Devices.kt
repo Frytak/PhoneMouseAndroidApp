@@ -8,6 +8,7 @@ import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
+import java.net.NetworkInterface
 import java.net.Socket
 
 class Device(var name: String, var address: InetAddress, var tcp_port: Int, var udp_port: Int) {
@@ -117,15 +118,27 @@ class Devices {
     fun detectDevices(port: Int = 2856, pingCount: Int = 5, interval: Long = 1000, onDeviceDetected: ((detectedDevice: Device, detectedDevices: List<Device>) -> Unit)? = null): List<Device> {
         Log.d(PHONE_MOUSE_TAG, "Detecting devices")
         val detectedDevices: MutableList<Device> = mutableListOf()
-        val multicastSocket = MulticastSocket()
 
-        var running = true
-        Thread { listenForDevices(multicastSocket, detectedDevices, running, onDeviceDetected) }.start()
+        val threadPool: MutableList<Thread> = mutableListOf()
+        for (networkInterface in NetworkInterface.getNetworkInterfaces()) {
+            if (networkInterface.supportsMulticast()) {
+                val thread = Thread {
+                    val multicastSocket = MulticastSocket()
 
-        // TODO: Get multicast address
-        sendOutPings(multicastSocket, pingCount, interval, InetSocketAddress("192.168.200.255", port))
-        running = false
-        multicastSocket.close()
+                    var running = true
+                    Thread { listenForDevices(multicastSocket, detectedDevices, running, onDeviceDetected) }.start()
+
+                    Log.d(PHONE_MOUSE_TAG, "Co to: " + networkInterface.interfaceAddresses.get(0).toString())
+
+                    sendOutPings(multicastSocket, pingCount, interval, InetSocketAddress(networkInterface.inetAddresses.nextElement(), port))
+                    running = false
+                    multicastSocket.close()
+                }
+
+                threadPool.add(thread)
+                thread.start()
+            }
+        }
 
         return detectedDevices
     }

@@ -63,6 +63,7 @@ fun Main() {
     LaunchedEffect(navController) {
         navController.currentBackStackEntryFlow.collect { backStackEntry ->
             when (backStackEntry.destination.route) {
+                PhoneMouseRoutes.Devices.name -> if (devicesViewModel.detectedDevices.value.isEmpty()) devicesViewModel.detectDevices()
                 PhoneMouseRoutes.GravityController.name -> devicesViewModel.setState(PhoneMouseState.Gravity)
                 PhoneMouseRoutes.TabletController.name -> devicesViewModel.setState(PhoneMouseState.Tablet)
                 else -> devicesViewModel.setState(PhoneMouseState.Idle)

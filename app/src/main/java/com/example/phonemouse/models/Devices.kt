@@ -5,6 +5,7 @@ import com.example.phonemouse.PHONE_MOUSE_TAG
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
+import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
@@ -128,9 +129,11 @@ class Devices {
                     var running = true
                     Thread { listenForDevices(multicastSocket, detectedDevices, running, onDeviceDetected) }.start()
 
-                    Log.d(PHONE_MOUSE_TAG, "Co to: " + networkInterface.interfaceAddresses.get(0).toString())
+                    // TODO: Calculate the multicast address from the mask
+                    val multicastAddress = networkInterface.inetAddresses.toList().filter { it is Inet4Address }[0].address;
+                    multicastAddress.set(3, 255.toByte())
 
-                    sendOutPings(multicastSocket, pingCount, interval, InetSocketAddress(networkInterface.inetAddresses.nextElement(), port))
+                    sendOutPings(multicastSocket, pingCount, interval, InetSocketAddress(InetAddress.getByAddress(multicastAddress), port))
                     running = false
                     multicastSocket.close()
                 }
@@ -139,6 +142,16 @@ class Devices {
                 thread.start()
             }
         }
+
+        var anyRunning = false;
+        do {
+            anyRunning = false;
+            for (thread in threadPool) {
+                if (thread.isAlive) {
+                    anyRunning = true;
+                }
+            }
+        } while (anyRunning)
 
         return detectedDevices
     }

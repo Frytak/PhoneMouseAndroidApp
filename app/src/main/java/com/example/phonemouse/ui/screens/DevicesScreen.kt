@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +23,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -60,52 +63,25 @@ fun DevicesScreen(
     val deviceList by devicesViewModel.detectedDevices.collectAsState()
     //val deviceList = listOf(
     //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
-    //    Device("Pavilion", InetAddress.getByName("192.168.200.153"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
+    //    Device("Pavilion", InetAddress.getByName("192.168.200.152"), 2855, 2856),
     //)
     val isDetectingDevices by devicesViewModel.isDetectingDevices.collectAsState()
     val connectedDevice by devicesViewModel.connectedDevice.collectAsState()
 
-    var enumeration: Enumeration<NetworkInterface>? = null
-    try {
-        enumeration = NetworkInterface.getNetworkInterfaces()
-    } catch (e: SocketException) {
-        e.printStackTrace()
-    }
-    var wlan0: NetworkInterface? = null
-    val sb = StringBuilder()
-    while (enumeration?.hasMoreElements() == true) {
-        wlan0 = enumeration?.nextElement()
-        sb.append(wlan0?.getName() + " ")
-        Log.i(PHONE_MOUSE_TAG, "Interface detected: " + wlan0?.name.toString() + " " + wlan0?.supportsMulticast().toString())
-        if (wlan0?.getName().equals("wlan0")) {
-            //there is probably a better way to find ethernet interface
-            Log.i(PHONE_MOUSE_TAG, "wlan0 found")
-        }
-    }
-
-    //Thread {
-    //    val multicast = MulticastSocket()
-    //    for (i in 1..5) {
-    //        Log.d(PHONE_MOUSE_TAG, "Sending out a multicast ping")
-    //        multicast.send(DatagramPacket(byteArrayOf(4), 1, socketAddress))
-    //        Thread.sleep(1500)
-    //    }
-    //    multicast.networkInterface = wlan0
-    //}.start()
-
+    val deviceListPullToRefreshState = rememberPullToRefreshState()
     val deviceListScrollState = rememberLazyListState()
     val topAppBarElevation by animateDpAsState(
         if (deviceListScrollState.canScrollBackward) 8.dp else 0.dp,
@@ -129,43 +105,48 @@ fun DevicesScreen(
         Box(
             modifier = Modifier.padding(innerPadding),
         ) {
-            AnimatedVisibility(
-                visible = deviceList.size >= 1 || isDetectingDevices,
-                enter = fadeIn(),
-                exit = fadeOut(),
+            PullToRefreshBox(
+                onRefresh = { devicesViewModel.detectDevices() },
+                isRefreshing = isDetectingDevices,
+                state = deviceListPullToRefreshState,
+                indicator = {
+                    Indicator(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        isRefreshing = isDetectingDevices,
+                        state = deviceListPullToRefreshState
+                    )
+                }
             ) {
-                PullToRefreshBox(
-                    onRefresh = { devicesViewModel.detectDevices() },
-                    isRefreshing = isDetectingDevices,
+                LazyColumn(
+                    state = deviceListScrollState,
+                    modifier = Modifier
+                        .padding(20.dp, 0.dp)
+                        .fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    LazyColumn(
-                        state = deviceListScrollState,
-                        modifier = Modifier
-                            .padding(20.dp, 0.dp)
-                            .fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
-                    ) {
-                        if (connectedDevice != null) {
-                            item {
-                                DeviceCard(
-                                    device = connectedDevice!!,
-                                    onClick = { devicesViewModel.disconnect() },
-                                    connected = true,
-                                )
-                            }
-
-                            item {
-                                Spacer(modifier = Modifier)
-                            }
-                        }
-
-                        items(deviceList) { device ->
+                    if (connectedDevice != null) {
+                        item {
                             DeviceCard(
-                                device = device,
-                                onClick = { devicesViewModel.connect(device) },
-                                connected = device.address == connectedDevice?.address,
+                                device = connectedDevice!!,
+                                onClick = { devicesViewModel.disconnect() },
+                                connected = true,
                             )
+
+                            if (deviceList.size > 1) {
+                                Spacer(modifier = Modifier.height(20.dp))
+                                HorizontalDivider(Modifier.padding(20.dp, 0.dp))
+                            }
                         }
+                    }
+
+                    items(deviceList.filter { it.address != connectedDevice?.address }) { device ->
+                        DeviceCard(
+                            device = device,
+                            onClick = { devicesViewModel.connect(device) },
+                            connected = false,
+                        )
                     }
                 }
             }

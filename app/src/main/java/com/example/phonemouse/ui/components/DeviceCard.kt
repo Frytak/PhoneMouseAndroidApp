@@ -2,6 +2,7 @@ package com.example.phonemouse.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +17,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,42 +40,54 @@ fun DeviceCard(
     val labelFontSize = 12.sp
 
     Card(
-        modifier = Modifier.clickable(onClick != null, "Connect to device", Role.Button) { if (onClick != null) onClick() }.then(modifier),
+        modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = if (!connected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.primaryContainer),
     ) {
-        Column(modifier = Modifier.padding(20.dp).fillMaxWidth()) {
-            Text(
-                text = device.name,
-                fontSize = 32.sp
-            )
-            Spacer(Modifier.height(10.dp))
-            Row {
-                Column {
-                    Text(
-                        text = "Address",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        fontSize = labelFontSize,
-                        lineHeight = 14.sp
-                    )
-                    Text(
-                        text = device.address?.hostAddress.toString(),
-                        fontSize = labelFontSize,
-                        lineHeight = 14.sp
-                    )
-                }
-                Spacer(Modifier.width(100.dp))
-                Column {
-                    Text(
-                        text = "Ports (TCP/UDP)",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        fontSize = labelFontSize,
-                        lineHeight = 14.sp
-                    )
-                    Text(
-                        text = device.tcp_port?.toString() + "/" + device.udp_port?.toString(),
-                        fontSize = labelFontSize,
-                        lineHeight = 14.sp
-                    )
+        Box(
+            modifier = Modifier.clickable(
+                enabled = onClick != null,
+                onClickLabel = "Connect to device",
+                role = Role.Button,
+                interactionSource = null,
+                indication = ripple(bounded = true),
+            ) { if (onClick != null) onClick() },
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp).fillMaxWidth()
+            ) {
+                Text(
+                    text = device.name,
+                    fontSize = 32.sp
+                )
+                Spacer(Modifier.height(10.dp))
+                Row {
+                    Column {
+                        Text(
+                            text = "Address",
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                            fontSize = labelFontSize,
+                            lineHeight = 14.sp
+                        )
+                        Text(
+                            text = device.address?.hostAddress.toString(),
+                            fontSize = labelFontSize,
+                            lineHeight = 14.sp
+                        )
+                    }
+                    Spacer(Modifier.width(100.dp))
+                    Column {
+                        Text(
+                            text = "Ports (TCP/UDP)",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            fontSize = labelFontSize,
+                            lineHeight = 14.sp
+                        )
+                        Text(
+                            text = device.tcp_port?.toString() + "/" + device.udp_port?.toString(),
+                            fontSize = labelFontSize,
+                            lineHeight = 14.sp
+                        )
+                    }
                 }
             }
         }

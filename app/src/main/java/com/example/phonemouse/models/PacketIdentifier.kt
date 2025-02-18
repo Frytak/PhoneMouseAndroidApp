@@ -100,8 +100,9 @@ enum class PhoneMouseState(val byte: Byte): Packet {
 }
 
 class Gravity(val x: Float, val y: Float, val z: Float): Packet {
+
     override fun toBytes(): ByteArray {
-        return ByteBuffer.allocate(Float.SIZE_BYTES * 3)
+        return ByteBuffer.allocate(Gravity.SIZE_BYTES)
             .order(ByteOrder.LITTLE_ENDIAN)
             .putFloat(x)
             .putFloat(y)
@@ -114,6 +115,9 @@ class Gravity(val x: Float, val y: Float, val z: Float): Packet {
     }
 
     companion object {
+        val SIZE_BYTES = Float.SIZE_BYTES * 3
+        val SIZE_BITS = Float.SIZE_BITS * 3
+
         fun fromBytes(bytes: ByteBuffer): Packet {
             bytes.order(ByteOrder.LITTLE_ENDIAN)
             return Gravity(
@@ -121,6 +125,66 @@ class Gravity(val x: Float, val y: Float, val z: Float): Packet {
                 bytes.getFloat(),
                 bytes.getFloat()
             )
+        }
+    }
+}
+
+class TouchPoint(val x: Float, val y: Float): Packet {
+    override fun toBytes(): ByteArray {
+        return ByteBuffer.allocate(TouchPoint.SIZE_BYTES)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .putFloat(x)
+            .putFloat(y)
+            .array()
+    }
+
+    override fun fromBytes(bytes: ByteBuffer): Packet {
+        return Companion.fromBytes(bytes)
+    }
+
+    companion object {
+        val SIZE_BYTES = Float.SIZE_BYTES * 2
+        val SIZE_BITS = Float.SIZE_BITS * 2
+
+        fun fromBytes(bytes: ByteBuffer): Packet {
+            bytes.order(ByteOrder.LITTLE_ENDIAN)
+            return TouchPoint(
+                bytes.getFloat(),
+                bytes.getFloat()
+            )
+        }
+    }
+}
+
+class TouchPoints(val touchPoints: List<TouchPoint>): Packet {
+    override fun toBytes(): ByteArray {
+        val bytes = ByteBuffer.allocate(Int.SIZE_BYTES + TouchPoint.SIZE_BYTES * touchPoints.size).order(ByteOrder.LITTLE_ENDIAN)
+        bytes.put(touchPoints.size.toByte())
+
+        for (touchPoint in touchPoints) {
+            bytes.put(touchPoint.toBytes())
+        }
+
+        return bytes.array();
+    }
+
+    override fun fromBytes(bytes: ByteBuffer): Packet {
+        return Companion.fromBytes(bytes)
+    }
+
+    companion object {
+        fun fromBytes(bytes: ByteBuffer): Packet {
+            bytes.order(ByteOrder.LITTLE_ENDIAN)
+            val length = bytes.get().toInt()
+
+            val touchPoints: MutableList<TouchPoint> = mutableListOf()
+
+            for (i in 0..length/TouchPoint.SIZE_BYTES) {
+                val touchPoint = ByteArray(TouchPoint.SIZE_BYTES)
+                bytes.get(touchPoint, i*TouchPoint.SIZE_BYTES, TouchPoint.SIZE_BYTES)
+            }
+
+            return TouchPoints(touchPoints)
         }
     }
 }

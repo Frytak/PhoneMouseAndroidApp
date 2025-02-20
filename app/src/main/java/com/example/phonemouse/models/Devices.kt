@@ -58,7 +58,7 @@ class Device(var name: String, var address: InetAddress, var tcp_port: Int, var 
         if (!isConnected()) { return; }
 
         val packetMessageBytes = packetMessage.toBytes()
-        Log.d(PHONE_MOUSE_TAG, "Sending TCP packet `${packetMessageBytes}`")
+        //Log.d(PHONE_MOUSE_TAG, "Sending TCP packet `${packetMessageBytes}`")
 
         tcp_socket?.getOutputStream()?.write(packetMessageBytes)
     }
@@ -67,7 +67,7 @@ class Device(var name: String, var address: InetAddress, var tcp_port: Int, var 
         if (!isConnected()) { return; }
 
         val packetMessageBytes = packetMessage.toBytes()
-        Log.d(PHONE_MOUSE_TAG, "Sending UDP packet `${packetMessageBytes}`")
+        //Log.d(PHONE_MOUSE_TAG, "Sending UDP packet `${packetMessageBytes}`")
 
         udp_socket?.send(DatagramPacket(packetMessageBytes, packetMessageBytes.size, address, udp_port))
     }

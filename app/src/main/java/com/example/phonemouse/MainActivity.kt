@@ -66,6 +66,7 @@ fun Main() {
                 PhoneMouseRoutes.Devices.name -> if (devicesViewModel.detectedDevices.value.isEmpty()) devicesViewModel.detectDevices()
                 PhoneMouseRoutes.GravityController.name -> devicesViewModel.setState(PhoneMouseState.Gravity)
                 PhoneMouseRoutes.TabletController.name -> devicesViewModel.setState(PhoneMouseState.Tablet)
+                PhoneMouseRoutes.TouchpadController.name -> devicesViewModel.setState(PhoneMouseState.Touchpad)
                 else -> devicesViewModel.setState(PhoneMouseState.Idle)
             }
         }

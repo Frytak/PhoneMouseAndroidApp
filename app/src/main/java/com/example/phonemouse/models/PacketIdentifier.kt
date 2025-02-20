@@ -15,7 +15,6 @@ interface Packet {
 }
 
 class PacketMessage(val identifier: PacketIdentifier, val packet: Packet): Packet {
-
     override fun toBytes(): ByteArray {
         return this.identifier.toBytes() + this.packet.toBytes()
     }
@@ -26,7 +25,7 @@ class PacketMessage(val identifier: PacketIdentifier, val packet: Packet): Packe
             PacketIdentifier.SwitchController -> PhoneMouseState.fromBytes(bytes)
             PacketIdentifier.Gravity -> Gravity.fromBytes(bytes)
             PacketIdentifier.Key -> TODO("Key packet is not yet implemented")
-            PacketIdentifier.Touch -> TODO("Touch packet is not yet implemented")
+            PacketIdentifier.Touch -> TouchPoint.fromBytes(bytes)
         }
 
         return PacketMessage(identifier, packet)
@@ -185,6 +184,40 @@ class TouchPoints(val touchPoints: List<TouchPoint>): Packet {
             }
 
             return TouchPoints(touchPoints)
+        }
+    }
+}
+
+enum class Key: Packet {
+    BTN_LEFT,
+    BTN_RIGHT;
+
+    override fun toBytes(): ByteArray {
+        val bytes = ByteBuffer.allocate(Short.SIZE_BYTES).order(ByteOrder.LITTLE_ENDIAN)
+
+        val value = when (this) {
+            BTN_LEFT -> 272
+            BTN_RIGHT -> 273
+        }
+        bytes.putShort(value.toShort())
+
+        return bytes.array();
+    }
+
+    override fun fromBytes(bytes: ByteBuffer): Packet {
+        return Companion.fromBytes(bytes)
+    }
+
+    companion object {
+        fun fromBytes(bytes: ByteBuffer): Packet {
+            bytes.order(ByteOrder.LITTLE_ENDIAN)
+            val value = bytes.getShort().toInt()
+
+            return when (value) {
+                272 -> BTN_LEFT
+                273 -> BTN_RIGHT
+                else -> throw Error("Invalid key")
+            }
         }
     }
 }

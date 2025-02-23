@@ -38,10 +38,10 @@ fun TabletControllerScreen(
                         val touchPoints: MutableList<TouchPoint> = mutableListOf()
 
                         event.changes.map {
-                            touchPoints.add(TouchPoint(it.position.x, it.position.y))
+                            touchPoints.add(TouchPoint(it.id.value, it.position.x, it.position.y))
                         }
 
-                        devicesViewModel.sendUDPPacketMessage(PacketMessage(PacketIdentifier.Touch, TouchPoints(touchPoints)))
+                        devicesViewModel.sendTCPPacketMessage(PacketMessage(PacketIdentifier.Touch, TouchPoints(touchPoints)))
                     }
                 }
             }

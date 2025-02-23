@@ -128,10 +128,11 @@ class Gravity(val x: Float, val y: Float, val z: Float): Packet {
     }
 }
 
-class TouchPoint(val x: Float, val y: Float): Packet {
+class TouchPoint(val id: Long, val x: Float, val y: Float): Packet {
     override fun toBytes(): ByteArray {
         return ByteBuffer.allocate(TouchPoint.SIZE_BYTES)
             .order(ByteOrder.LITTLE_ENDIAN)
+            .putLong(id)
             .putFloat(x)
             .putFloat(y)
             .array()
@@ -142,12 +143,13 @@ class TouchPoint(val x: Float, val y: Float): Packet {
     }
 
     companion object {
-        val SIZE_BYTES = Float.SIZE_BYTES * 2
-        val SIZE_BITS = Float.SIZE_BITS * 2
+        val SIZE_BYTES = Long.SIZE_BYTES + Float.SIZE_BYTES * 2
+        val SIZE_BITS = Long.SIZE_BITS + Float.SIZE_BITS * 2
 
         fun fromBytes(bytes: ByteBuffer): Packet {
             bytes.order(ByteOrder.LITTLE_ENDIAN)
             return TouchPoint(
+                bytes.getLong(),
                 bytes.getFloat(),
                 bytes.getFloat()
             )
@@ -157,7 +159,7 @@ class TouchPoint(val x: Float, val y: Float): Packet {
 
 class TouchPoints(val touchPoints: List<TouchPoint>): Packet {
     override fun toBytes(): ByteArray {
-        val bytes = ByteBuffer.allocate(Int.SIZE_BYTES + TouchPoint.SIZE_BYTES * touchPoints.size).order(ByteOrder.LITTLE_ENDIAN)
+        val bytes = ByteBuffer.allocate(Byte.SIZE_BYTES + TouchPoint.SIZE_BYTES * touchPoints.size).order(ByteOrder.LITTLE_ENDIAN)
         bytes.put(touchPoints.size.toByte())
 
         for (touchPoint in touchPoints) {

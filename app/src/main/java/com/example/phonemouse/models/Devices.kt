@@ -2,6 +2,9 @@ package com.example.phonemouse.models
 
 import android.util.Log
 import com.example.phonemouse.PHONE_MOUSE_TAG
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -36,6 +39,7 @@ class Device(var name: String, var address: InetAddress, var tcp_port: Int, var 
         if (this.isConnected()) { return; }
         tcp_socket = Socket(address, tcp_port)
         udp_socket = DatagramSocket(udp_port)
+
         Log.d(PHONE_MOUSE_TAG, "Connected!")
         setState(PhoneMouseState.Idle)
     }
@@ -57,10 +61,11 @@ class Device(var name: String, var address: InetAddress, var tcp_port: Int, var 
     fun sendTCPPacketMessage(packetMessage: PacketMessage) {
         if (!isConnected()) { return; }
 
-        val packetMessageBytes = packetMessage.toBytes()
-        //Log.d(PHONE_MOUSE_TAG, "Sending TCP packet `${packetMessageBytes}`")
+        val packetMessageBytes = packetMessage.toBytes().asList().toMutableList()
+        packetMessageBytes.add(0, 1)
+        Log.d(PHONE_MOUSE_TAG, "Sending TCP packet `${packetMessageBytes}`")
 
-        tcp_socket?.getOutputStream()?.write(packetMessageBytes)
+        tcp_socket?.getOutputStream()?.write(packetMessageBytes.toByteArray())
     }
 
     fun sendUDPPacketMessage(packetMessage: PacketMessage) {

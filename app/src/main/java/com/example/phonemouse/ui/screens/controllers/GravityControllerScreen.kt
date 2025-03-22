@@ -5,6 +5,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -16,10 +17,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import com.example.phonemouse.PHONE_MOUSE_TAG
 import com.example.phonemouse.models.Gravity
 import com.example.phonemouse.models.PacketIdentifier
 import com.example.phonemouse.models.PacketMessage
 import com.example.phonemouse.viewmodels.DevicesViewModel
+import java.time.LocalDateTime
+import kotlin.time.Duration
+import kotlin.time.toKotlinDuration
 
 @Composable
 fun GravityControllerScreen(
@@ -45,7 +50,9 @@ fun GravityControllerScreen(
             override fun onSensorChanged(event: SensorEvent?) {
                 event?.let {
                     // Update the state with the latest x, y, and z values.
-                    devicesViewModel.sendUDPPacketMessage(PacketMessage(PacketIdentifier.Gravity, Gravity(it.values[0], it.values[1], it.values[2])))
+                    val duration = java.time.Duration.between(devicesViewModel.connectedDevice.value?.connectionStartTime, LocalDateTime.now()).toKotlinDuration()
+                    Log.d(PHONE_MOUSE_TAG, "Szmabo: " + duration.toIsoString())
+                    devicesViewModel.sendUDPPacketMessage(PacketMessage(PacketIdentifier.Gravity, Gravity(duration, it.values[0], it.values[1], it.values[2])))
                     acceleration.value = Triple(it.values[0], it.values[1], it.values[2])
                 }
             }

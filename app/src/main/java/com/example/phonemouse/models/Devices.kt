@@ -1,10 +1,9 @@
 package com.example.phonemouse.models
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.example.phonemouse.PHONE_MOUSE_TAG
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -14,10 +13,12 @@ import java.net.InetSocketAddress
 import java.net.MulticastSocket
 import java.net.NetworkInterface
 import java.net.Socket
+import java.time.LocalDateTime
 
-class Device(var name: String, var address: InetAddress, var tcp_port: Int, var udp_port: Int) {
-    var tcp_socket: Socket? = null
-    var udp_socket: DatagramSocket? = null
+class Device(var name: String, var address: InetAddress, var tcpPort: Int, var udpPort: Int) {
+    var tcpSocket: Socket? = null
+    var udpSocket: DatagramSocket? = null
+    var connectionStartTime: LocalDateTime? = null
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -25,35 +26,39 @@ class Device(var name: String, var address: InetAddress, var tcp_port: Int, var 
 
         return this.name == other.name
             && this.address == other.address
-            && this.tcp_port == other.tcp_port
-            && this.udp_port == other.udp_port
+            && this.tcpPort == other.tcpPort
+            && this.udpPort == other.udpPort
     }
 
     fun copy(): Device {
-        return Device(this.name, this.address, this.tcp_port, this.udp_port)
+        return Device(this.name, this.address, this.tcpPort, this.udpPort)
     }
 
-    fun isConnected() = tcp_socket != null && udp_socket != null
+    fun isConnected() = tcpSocket != null && udpSocket != null
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun connect() {
         if (this.isConnected()) { return; }
-        tcp_socket = Socket(address, tcp_port)
-        udp_socket = DatagramSocket(udp_port)
+        tcpSocket = Socket(address, tcpPort)
+        udpSocket = DatagramSocket(udpPort)
 
         Log.d(PHONE_MOUSE_TAG, "Connected!")
+        connectionStartTime = LocalDateTime.now()
         setState(PhoneMouseState.Idle)
     }
 
     fun disconnect() {
-        tcp_socket?.let {
+        connectionStartTime = null
+
+        tcpSocket?.let {
             it.close()
-            tcp_socket = null
+            tcpSocket = null
             Log.d(PHONE_MOUSE_TAG, "Disconnected TCP")
         }
 
-        udp_socket?.let {
+        udpSocket?.let {
             it.close()
-            udp_socket = null
+            udpSocket = null
             Log.d(PHONE_MOUSE_TAG, "Disconnected UDP")
         }
     }
@@ -65,7 +70,7 @@ class Device(var name: String, var address: InetAddress, var tcp_port: Int, var 
         packetMessageBytes.add(0, 1)
         Log.d(PHONE_MOUSE_TAG, "Sending TCP packet `${packetMessageBytes}`")
 
-        tcp_socket?.getOutputStream()?.write(packetMessageBytes.toByteArray())
+        tcpSocket?.getOutputStream()?.write(packetMessageBytes.toByteArray())
     }
 
     fun sendUDPPacketMessage(packetMessage: PacketMessage) {
@@ -74,7 +79,7 @@ class Device(var name: String, var address: InetAddress, var tcp_port: Int, var 
         val packetMessageBytes = packetMessage.toBytes()
         //Log.d(PHONE_MOUSE_TAG, "Sending UDP packet `${packetMessageBytes}`")
 
-        udp_socket?.send(DatagramPacket(packetMessageBytes, packetMessageBytes.size, address, udp_port))
+        udpSocket?.send(DatagramPacket(packetMessageBytes, packetMessageBytes.size, address, udpPort))
     }
 
     fun setState(state: PhoneMouseState) {

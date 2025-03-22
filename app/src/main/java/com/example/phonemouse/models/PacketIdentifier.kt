@@ -1,9 +1,12 @@
 package com.example.phonemouse.models
-
 import android.util.Log
 import com.example.phonemouse.PHONE_MOUSE_TAG
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.math.absoluteValue
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 interface Packet {
     fun toBytes(): ByteArray
@@ -69,7 +72,8 @@ enum class PhoneMouseState(val byte: Byte): Packet {
     Idle(0),
     Gravity(1),
     Touchpad(2),
-    Tablet(3);
+    Tablet(3),
+    Mouse(4);
 
     override fun toBytes(): ByteArray {
         return byteArrayOf(this.byte)
@@ -88,6 +92,7 @@ enum class PhoneMouseState(val byte: Byte): Packet {
                 1.toByte() -> Gravity
                 2.toByte() -> Touchpad
                 3.toByte() -> Tablet
+                4.toByte() -> Mouse
                 else -> {
                     val error = "Invalid PhoneMouseState. Got byte `${byte.toString()}`"
                     Log.e(PHONE_MOUSE_TAG, error)
@@ -98,11 +103,19 @@ enum class PhoneMouseState(val byte: Byte): Packet {
     }
 }
 
-class Gravity(val x: Float, val y: Float, val z: Float): Packet {
+class Gravity(val duration: Duration, val x: Float, val y: Float, val z: Float): Packet {
 
     override fun toBytes(): ByteArray {
+        val duration = duration.toComponents { seconds, nanoseconds ->
+            ByteBuffer.allocate(Long.SIZE_BYTES + Int.SIZE_BYTES)
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .putLong(seconds)
+                .putInt(nanoseconds.absoluteValue)
+        }
+
         return ByteBuffer.allocate(Gravity.SIZE_BYTES)
             .order(ByteOrder.LITTLE_ENDIAN)
+            .put(duration.array())
             .putFloat(x)
             .putFloat(y)
             .putFloat(z)
@@ -114,12 +127,13 @@ class Gravity(val x: Float, val y: Float, val z: Float): Packet {
     }
 
     companion object {
-        val SIZE_BYTES = Float.SIZE_BYTES * 3
-        val SIZE_BITS = Float.SIZE_BITS * 3
+        val SIZE_BYTES = Long.SIZE_BYTES + Int.SIZE_BYTES + (Float.SIZE_BYTES * 3)
+        val SIZE_BITS = SIZE_BYTES * 8
 
         fun fromBytes(bytes: ByteBuffer): Packet {
             bytes.order(ByteOrder.LITTLE_ENDIAN)
             return Gravity(
+                (bytes.getLong().toDuration(DurationUnit.SECONDS) + bytes.getInt().toDuration(DurationUnit.NANOSECONDS)),
                 bytes.getFloat(),
                 bytes.getFloat(),
                 bytes.getFloat()

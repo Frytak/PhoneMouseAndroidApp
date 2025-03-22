@@ -45,29 +45,29 @@ fun TouchpadControllerScreen(
     val configuration = LocalConfiguration.current
     val view = LocalView.current
 
-    Scaffold { innerPadding ->
+    Scaffold(Modifier
+    .pointerInput(Unit) {
+        awaitEachGesture {
+            while (true) {
+                val touchPoints: MutableList<TouchPoint> = mutableListOf()
+                val event = awaitPointerEvent()
+
+                event.changes.forEach {
+                    if (it.pressed) {
+                        touchPoints.add(TouchPoint(it.id.value, it.position.x, it.position.y))
+                    }
+                }
+
+                devicesViewModel.sendTCPPacketMessage(PacketMessage(PacketIdentifier.Touch, TouchPoints(touchPoints)))
+            }
+        }
+    }
+    ) { innerPadding ->
         Column {
             Box(Modifier
                 .fillMaxWidth()
                 .weight(if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) { 0.7f } else { 0.85f }, true)
                 .then(Modifier.padding(innerPadding))
-                .pointerInput(Unit) {
-                    awaitEachGesture {
-                        while (true) {
-                            val touchPoints: MutableList<TouchPoint> = mutableListOf()
-                            val event = awaitPointerEvent()
-
-                            event.changes.forEach {
-                                if (it.pressed) {
-                                    touchPoints.add(TouchPoint(it.id.value, it.position.x, it.position.y))
-                                }
-                                it.consume()
-                            }
-
-                            devicesViewModel.sendTCPPacketMessage(PacketMessage(PacketIdentifier.Touch, TouchPoints(touchPoints)))
-                        }
-                    }
-                }
             )
             HorizontalDivider(modifier = Modifier.fillMaxWidth())
             Row(modifier = Modifier.weight(if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) { 0.3f } else { 0.15f }).height(10.dp)) {

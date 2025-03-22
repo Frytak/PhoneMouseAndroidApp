@@ -64,6 +64,7 @@ fun Main() {
         navController.currentBackStackEntryFlow.collect { backStackEntry ->
             when (backStackEntry.destination.route) {
                 PhoneMouseRoutes.Devices.name -> if (devicesViewModel.detectedDevices.value.isEmpty()) devicesViewModel.detectDevices()
+                PhoneMouseRoutes.MouseController.name -> devicesViewModel.setState(PhoneMouseState.Mouse)
                 PhoneMouseRoutes.GravityController.name -> devicesViewModel.setState(PhoneMouseState.Gravity)
                 PhoneMouseRoutes.TabletController.name -> devicesViewModel.setState(PhoneMouseState.Tablet)
                 PhoneMouseRoutes.TouchpadController.name -> devicesViewModel.setState(PhoneMouseState.Touchpad)

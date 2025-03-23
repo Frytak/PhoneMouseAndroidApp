@@ -48,7 +48,7 @@ fun MouseControllerScreen(
                 event?.let {
                     // Update the state with the latest x, y, and z values.
                     val duration = java.time.Duration.between(devicesViewModel.connectedDevice.value?.connectionStartTime, LocalDateTime.now()).toKotlinDuration()
-                    devicesViewModel.sendTCPPacketMessage(PacketMessage(PacketIdentifier.Gravity, Gravity(duration, it.values[0], it.values[1], it.values[2])))
+                    devicesViewModel.sendTCPPacketMessage(PacketMessage(PacketIdentifier.Gravity, Gravity(it.values[0], it.values[1], it.values[2])))
                     acceleration.value = Triple(it.values[0], it.values[1], it.values[2])
                 }
             }

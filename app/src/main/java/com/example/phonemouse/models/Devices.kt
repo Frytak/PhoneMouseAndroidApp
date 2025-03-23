@@ -36,7 +36,6 @@ class Device(var name: String, var address: InetAddress, var tcpPort: Int, var u
 
     fun isConnected() = tcpSocket != null && udpSocket != null
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun connect() {
         if (this.isConnected()) { return; }
         tcpSocket = Socket(address, tcpPort)
@@ -121,7 +120,8 @@ class Devices {
     private fun sendOutPings(multicastSocket: MulticastSocket, pingCount: Int, interval: Long, socketAddress: InetSocketAddress) {
         for (i in 1..pingCount) {
             Log.d(PHONE_MOUSE_TAG, "Sending out a multicast ping")
-            multicastSocket.send(DatagramPacket(byteArrayOf(4), 1, socketAddress))
+            val bytes = PacketMessage(PacketIdentifier.Ping, Ping()).toBytes()
+            multicastSocket.send(DatagramPacket(bytes, bytes.size, socketAddress))
             Thread.sleep(interval)
         }
     }

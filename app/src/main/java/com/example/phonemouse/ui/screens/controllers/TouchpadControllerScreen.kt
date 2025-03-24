@@ -34,12 +34,19 @@ import com.example.phonemouse.models.Key
 import com.example.phonemouse.models.PacketIdentifier
 import com.example.phonemouse.models.PacketMessage
 import com.example.phonemouse.models.TouchPoint
+import com.example.phonemouse.models.TouchPoints
 import com.example.phonemouse.viewmodels.DevicesViewModel
+import java.time.Instant
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.toKotlinDuration
 
 fun buttonClick(view: View, devicesViewModel: DevicesViewModel, button: Key) {
     view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
     devicesViewModel.sendTCPPacketMessage(PacketMessage(PacketIdentifier.Key, button))
 }
+
+data class TimedTouchPoint(val touchPoint: TouchPoint, val created: Duration = java.time.Duration.between(Instant.EPOCH, Instant.now()).toKotlinDuration())
 
 @Composable
 fun TouchpadControllerScreen(
@@ -56,24 +63,54 @@ fun TouchpadControllerScreen(
         .onSizeChanged { size -> scaffoldSize = size }
         .pointerInput(Unit) {
             awaitEachGesture {
-                var previousTouchPoints: HashMap<Long, TouchPoint> = hashMapOf()
+                var previousTouchPoints: HashMap<Long, TimedTouchPoint> = hashMapOf()
                 while (true) {
-                    val touchPoints: HashMap<Long, TouchPoint> = hashMapOf()
+                    val touchPoints: HashMap<Long, TimedTouchPoint> = hashMapOf()
                     val event = awaitPointerEvent()
 
                     event.changes.forEach {
                         if (it.pressed) {
-                            touchPoints[it.id.value] = TouchPoint(it.id.value, it.position.x, it.position.y)
+                            val touchPoint = TouchPoint(it.id.value, it.position.x, it.position.y)
+                            if (previousTouchPoints.containsKey(it.id.value)) {
+                                touchPoints[it.id.value] = TimedTouchPoint(touchPoint, previousTouchPoints[it.id.value]!!.created)
+                            } else {
+                                touchPoints[it.id.value] = TimedTouchPoint(touchPoint)
+                            }
+                            it.consume()
                         }
                     }
 
+                    //Log.d(PHONE_MOUSE_TAG, "[")
+                    //touchPoints.forEach { _, it -> Log.d(PHONE_MOUSE_TAG, "{ id: ${it.touchPoint.id}, x: ${it.touchPoint.x}, y: ${it.touchPoint.y}, created: ${it.created} } ") }
+                    //Log.d(PHONE_MOUSE_TAG, "]")
 
+                    val timeDelta = java.time.Duration.between(Instant.EPOCH, Instant. now()).toKotlinDuration()
 
-                    Log.d(PHONE_MOUSE_TAG, "[")
-                    touchPoints.forEach { _, it -> Log.d(PHONE_MOUSE_TAG, "{ id: ${it.id}, x: ${it.x}, y: ${it.y} } ") }
-                    Log.d(PHONE_MOUSE_TAG, "]")
+                    previousTouchPoints.forEach { _, timedTouchPoint ->
+                        if (!touchPoints.contains(timedTouchPoint.touchPoint.id)) {
+                            if ((timeDelta.inWholeMilliseconds - timedTouchPoint.created.inWholeMilliseconds) < 200) {
+                                // TODO: Change this to only detect the click and set of haptic feedback if the click was not on a button
 
-                    //devicesViewModel.sendTCPPacketMessage(PacketMessage(PacketIdentifier.Touch, TouchPoints(touchPoints)))
+                                // Button
+                                if ((scaffoldSize?.height ?: Int.MAX_VALUE) > timedTouchPoint.touchPoint.y && timedTouchPoint.touchPoint.y > (scaffoldSize?.height ?: -1) - (buttonsSize?.height ?: 0)) {
+                                    // Left
+                                    if (timedTouchPoint.touchPoint.x < (buttonsSize?.width ?: 0) / 2) {
+                                        buttonClick(view, devicesViewModel, Key.BTN_LEFT)
+                                    // Right
+                                    } else {
+                                        buttonClick(view, devicesViewModel, Key.BTN_RIGHT)
+                                    }
+                                // Touchpad area click
+                                } else {
+                                    buttonClick(view, devicesViewModel, Key.BTN_LEFT)
+                                }
+
+                                touchPoints.remove(timedTouchPoint.touchPoint.id)
+                            }
+                        }
+                    }
+
+                    devicesViewModel.sendTCPPacketMessage(PacketMessage(PacketIdentifier.Touch, TouchPoints(touchPoints.values.map { it.touchPoint })))
                     previousTouchPoints = touchPoints
                 }
             }
@@ -90,9 +127,9 @@ fun TouchpadControllerScreen(
                 .onSizeChanged { size -> buttonsSize = size }
                 .weight(if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) { 0.3f } else { 0.15f }).height(10.dp)
             ) {
-                Box(Modifier.weight(0.5f).fillMaxHeight().clickable { buttonClick(view, devicesViewModel, Key.BTN_LEFT) })
+                Box(Modifier.weight(0.5f).fillMaxHeight().clickable { })
                 VerticalDivider(modifier = Modifier.fillMaxHeight())
-                Box(Modifier.weight(0.5f).fillMaxHeight().clickable { buttonClick(view, devicesViewModel, Key.BTN_RIGHT) })
+                Box(Modifier.weight(0.5f).fillMaxHeight().clickable { })
             }
         }
     }

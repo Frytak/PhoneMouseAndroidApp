@@ -9,6 +9,9 @@
 /.idea/assetWizardSettings.xml
 .DS_Store
 /build
+/release/
+/app/release
+phone_mouse_key.jks
 /captures
 .externalNativeBuild
 .cxx

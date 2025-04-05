@@ -226,18 +226,18 @@ class TouchPoints(val touchPoints: List<TouchPoint>): Packet {
     }
 }
 
-enum class Key: Packet {
+enum class Key(var pressed: Boolean = false): Packet {
     BTN_LEFT,
     BTN_RIGHT;
 
     override fun toBytes(): ByteArray {
-        val bytes = ByteBuffer.allocate(Short.SIZE_BYTES).order(ByteOrder.LITTLE_ENDIAN)
+        val bytes = ByteBuffer.allocate(Short.SIZE_BYTES + 1).order(ByteOrder.LITTLE_ENDIAN)
 
         val value = when (this) {
             BTN_LEFT -> 272
             BTN_RIGHT -> 273
         }
-        bytes.putShort(value.toShort())
+        bytes.putShort(value.toShort()).put(if (pressed) { 1 } else { 0 })
 
         return bytes.array();
     }
@@ -250,12 +250,17 @@ enum class Key: Packet {
         fun fromBytes(bytes: ByteBuffer): Packet {
             bytes.order(ByteOrder.LITTLE_ENDIAN)
             val value = bytes.getShort().toInt()
+            val pressed = bytes.get() > 0
 
-            return when (value) {
+            var key = when (value) {
                 272 -> BTN_LEFT
                 273 -> BTN_RIGHT
                 else -> throw Error("Invalid key")
-            }
+            };
+
+            key.pressed = pressed
+
+            return key
         }
     }
 }

@@ -1,8 +1,6 @@
 package com.example.phonemouse.models
 
-import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresApi
 import com.example.phonemouse.PHONE_MOUSE_TAG
 import java.io.IOException
 import java.net.DatagramPacket
@@ -43,7 +41,7 @@ class Device(var name: String, var address: InetAddress, var tcpPort: Int, var u
 
         Log.d(PHONE_MOUSE_TAG, "Connected!")
         connectionStartTime = LocalDateTime.now()
-        setState(PhoneMouseState.Idle)
+        setState(PhoneMouseStateIdentifier.Idle)
     }
 
     fun disconnect() {
@@ -81,7 +79,7 @@ class Device(var name: String, var address: InetAddress, var tcpPort: Int, var u
         udpSocket?.send(DatagramPacket(packetMessageBytes, packetMessageBytes.size, address, udpPort))
     }
 
-    fun setState(state: PhoneMouseState) {
+    fun setState(state: PhoneMouseStateIdentifier) {
         sendTCPPacketMessage(PacketMessage(PacketIdentifier.SwitchController, state))
     }
 }

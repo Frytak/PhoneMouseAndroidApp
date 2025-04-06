@@ -18,7 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.phonemouse.models.PhoneMouseState
+import com.example.phonemouse.models.PhoneMouseStateIdentifier
 import com.example.phonemouse.ui.screens.DevicesScreen
 import com.example.phonemouse.ui.screens.MainScreen
 import com.example.phonemouse.ui.screens.SettingsScreen
@@ -64,11 +64,11 @@ fun Main() {
         navController.currentBackStackEntryFlow.collect { backStackEntry ->
             when (backStackEntry.destination.route) {
                 PhoneMouseRoutes.Devices.name -> if (devicesViewModel.detectedDevices.value.isEmpty()) devicesViewModel.detectDevices()
-                PhoneMouseRoutes.MouseController.name -> devicesViewModel.setState(PhoneMouseState.Mouse)
-                PhoneMouseRoutes.GravityController.name -> devicesViewModel.setState(PhoneMouseState.Gravity)
-                PhoneMouseRoutes.TabletController.name -> devicesViewModel.setState(PhoneMouseState.Tablet)
-                PhoneMouseRoutes.TouchpadController.name -> devicesViewModel.setState(PhoneMouseState.Touchpad)
-                else -> devicesViewModel.setState(PhoneMouseState.Idle)
+                PhoneMouseRoutes.MouseController.name -> devicesViewModel.setState(PhoneMouseStateIdentifier.Mouse)
+                PhoneMouseRoutes.GravityController.name -> devicesViewModel.setState(PhoneMouseStateIdentifier.Gravity)
+                PhoneMouseRoutes.TabletController.name -> devicesViewModel.setState(PhoneMouseStateIdentifier.Tablet)
+                PhoneMouseRoutes.TouchpadController.name -> devicesViewModel.setState(PhoneMouseStateIdentifier.Touchpad)
+                else -> devicesViewModel.setState(PhoneMouseStateIdentifier.Idle)
             }
         }
     }

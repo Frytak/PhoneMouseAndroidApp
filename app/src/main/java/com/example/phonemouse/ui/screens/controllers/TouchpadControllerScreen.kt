@@ -17,6 +17,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,11 +33,15 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.phonemouse.PHONE_MOUSE_TAG
+import com.example.phonemouse.models.Area
 import com.example.phonemouse.models.Key
 import com.example.phonemouse.models.PacketIdentifier
 import com.example.phonemouse.models.PacketMessage
+import com.example.phonemouse.models.PhoneMouseStateIdentifier
 import com.example.phonemouse.models.TouchPoint
 import com.example.phonemouse.models.TouchPoints
+import com.example.phonemouse.models.TouchpadArea
+import com.example.phonemouse.models.TouchpadState
 import com.example.phonemouse.viewmodels.DevicesViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -49,9 +54,9 @@ import kotlin.time.toKotlinDuration
 fun buttonClick(view: View, devicesViewModel: DevicesViewModel, button: Key) {
     view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
     button.pressed = true;
-    devicesViewModel.sendTCPPacketMessage(PacketMessage(PacketIdentifier.Key, button))
+    devicesViewModel.sendTCPPacketMessage(PacketMessage(button))
     button.pressed = false;
-    devicesViewModel.sendTCPPacketMessage(PacketMessage(PacketIdentifier.Key, button))
+    devicesViewModel.sendTCPPacketMessage(PacketMessage(button))
 }
 
 data class ExtendedTouchPoint(val touchPoint: TouchPoint, val first_x: Float, val first_y: Float, var held: Key? = null, val created: Duration = java.time.Duration.between(Instant.EPOCH, Instant.now()).toKotlinDuration())
@@ -93,6 +98,17 @@ fun TouchpadControllerScreen(
 
     val coroutineScope = rememberCoroutineScope()
     var touchPointTimers: HashMap<Long, Job> = hashMapOf()
+
+    LaunchedEffect(key1 = scaffoldSize, key2 = buttonsSize) {
+        if (scaffoldSize != null && buttonsSize != null) {
+            devicesViewModel.sendTCPPacketMessage(PacketMessage(TouchpadState(TouchpadArea(
+                all = Area(0u, 0u, scaffoldSize!!.width.toUShort(), scaffoldSize!!.height.toUShort()),
+                touchOnly = Area(0u, 0u, scaffoldSize!!.width.toUShort(), (scaffoldSize!!.height - buttonsSize!!.height).toUShort()),
+                buttonLeft = Area(0u, (scaffoldSize!!.height - buttonsSize!!.height).toUShort(), (buttonsSize!!.width / 2).toUShort(), (buttonsSize!!.height / 2).toUShort()),
+                buttonRight = Area((buttonsSize!!.width / 2).toUShort(), (scaffoldSize!!.height - buttonsSize!!.height).toUShort(), (buttonsSize!!.width / 2).toUShort(), (buttonsSize!!.height / 2).toUShort())
+            ))))
+        }
+    }
 
     Scaffold(Modifier
         .onSizeChanged { size -> scaffoldSize = size }
@@ -156,12 +172,7 @@ fun TouchpadControllerScreen(
 
                                     Log.d(PHONE_MOUSE_TAG, "HOLD! " + key.name)
                                     touchPoint.held = key;
-                                    devicesViewModel.sendTCPPacketMessage(
-                                        PacketMessage(
-                                            PacketIdentifier.Key,
-                                            key
-                                        )
-                                    )
+                                    devicesViewModel.sendTCPPacketMessage(PacketMessage(key))
                                 }
                             }
                             it.consume()
@@ -182,7 +193,7 @@ fun TouchpadControllerScreen(
 
                             if (previousTouchPoint.held != null) {
                                 previousTouchPoint.held!!.pressed = false
-                                devicesViewModel.sendTCPPacketMessage(PacketMessage(PacketIdentifier.Key, previousTouchPoint.held!!))
+                                devicesViewModel.sendTCPPacketMessage(PacketMessage(previousTouchPoint.held!!))
                             } else if ((timeDelta.inWholeMilliseconds - previousTouchPoint.created.inWholeMilliseconds) < 200) {
                                 // TODO: Change this to only detect the click and set of haptic feedback if the click was not on a button
 
@@ -216,12 +227,7 @@ fun TouchpadControllerScreen(
 
                     val filteredTouchPoints = touchPoints.values.filter { it.held == null }
                     if (!filteredTouchPoints.isEmpty() || touchPoints.isEmpty()) {
-                        devicesViewModel.sendTCPPacketMessage(
-                            PacketMessage(
-                                PacketIdentifier.Touch,
-                                TouchPoints(filteredTouchPoints.map { it.touchPoint })
-                            )
-                        )
+                        devicesViewModel.sendTCPPacketMessage(PacketMessage(TouchPoints(filteredTouchPoints.map { it.touchPoint })))
                     }
                     previousTouchPoints = touchPoints
                 }

@@ -6,7 +6,7 @@ import com.example.phonemouse.PHONE_MOUSE_TAG
 import com.example.phonemouse.models.Device
 import com.example.phonemouse.models.Devices
 import com.example.phonemouse.models.PacketMessage
-import com.example.phonemouse.models.PhoneMouseState
+import com.example.phonemouse.models.PhoneMouseStateIdentifier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,8 +24,8 @@ class DevicesViewModel : ViewModel() {
     private val _isDetectingDevices = MutableStateFlow<Boolean>(false)
     val isDetectingDevices: StateFlow<Boolean> = _isDetectingDevices.asStateFlow()
 
-    private val _state = MutableStateFlow<PhoneMouseState>(PhoneMouseState.Idle)
-    val state: StateFlow<PhoneMouseState> = _state.asStateFlow()
+    private val _state = MutableStateFlow<PhoneMouseStateIdentifier>(PhoneMouseStateIdentifier.Idle)
+    val state: StateFlow<PhoneMouseStateIdentifier> = _state.asStateFlow()
 
     fun detectDevices(port: Int = 2856) {
         if (_isDetectingDevices.value) { return; }
@@ -62,7 +62,7 @@ class DevicesViewModel : ViewModel() {
         }.start()
     }
 
-    fun setState(state: PhoneMouseState) {
+    fun setState(state: PhoneMouseStateIdentifier) {
         if (_connectedDevice.value == null) return
 
         Thread {
@@ -76,7 +76,7 @@ class DevicesViewModel : ViewModel() {
     }
 
     fun sendTCPPacketMessage(packetMessage: PacketMessage) {
-        if (_connectedDevice.value == null || packetMessage.packet is PhoneMouseState) return
+        if (_connectedDevice.value == null || packetMessage.packet is PhoneMouseStateIdentifier) return
 
         Thread {
             try {
@@ -88,7 +88,7 @@ class DevicesViewModel : ViewModel() {
     }
 
     fun sendUDPPacketMessage(packetMessage: PacketMessage) {
-        if (_connectedDevice.value == null || packetMessage.packet is PhoneMouseState) return
+        if (_connectedDevice.value == null || packetMessage.packet is PhoneMouseStateIdentifier) return
 
         Thread {
             try {

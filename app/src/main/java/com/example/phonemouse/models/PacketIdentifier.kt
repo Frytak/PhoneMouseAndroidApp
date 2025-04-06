@@ -1,8 +1,10 @@
 package com.example.phonemouse.models
-import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresApi
 import com.example.phonemouse.PHONE_MOUSE_TAG
+import com.example.phonemouse.models.PhoneMouseStateIdentifier.Idle
+import com.example.phonemouse.models.PhoneMouseStateIdentifier.Mouse
+import com.example.phonemouse.models.PhoneMouseStateIdentifier.Tablet
+import com.example.phonemouse.models.PhoneMouseStateIdentifier.Touchpad
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.time.Duration
@@ -19,7 +21,7 @@ interface Packet {
     }
 }
 
-class PacketMessage constructor(val identifier: PacketIdentifier, val packet: Packet, val timeDelta: Duration = java.time.Duration.between(Instant.EPOCH, Instant.now()).toKotlinDuration()): Packet {
+class PacketMessage constructor(val packet: Packet, val timeDelta: Duration = java.time.Duration.between(Instant.EPOCH, Instant.now()).toKotlinDuration()): Packet {
     override fun toBytes(): ByteArray {
         val duration = timeDelta.toComponents { seconds, nanoseconds ->
             ByteBuffer.allocate(Long.SIZE_BYTES + Int.SIZE_BYTES)
@@ -28,21 +30,21 @@ class PacketMessage constructor(val identifier: PacketIdentifier, val packet: Pa
                 .putInt(nanoseconds.absoluteValue)
         }
 
-        return duration.array() + this.identifier.toBytes() + this.packet.toBytes()
+        return duration.array() + this.packet.toBytes()
     }
 
     override fun fromBytes(bytes: ByteBuffer): PacketMessage {
         val timeDelta = java.time.Duration.ofSeconds(bytes.getLong(), bytes.getInt().toLong()).toKotlinDuration()
         val identifier = PacketIdentifier.fromBytes(bytes)
         val packet = when (identifier) {
-            PacketIdentifier.SwitchController -> PhoneMouseState.fromBytes(bytes)
+            PacketIdentifier.SwitchController -> PhoneMouseStateIdentifier.fromBytes(bytes)
             PacketIdentifier.Gravity -> Gravity.fromBytes(bytes)
             PacketIdentifier.Key -> TODO("Key packet is not yet implemented")
             PacketIdentifier.Touch -> TouchPoint.fromBytes(bytes)
             PacketIdentifier.Ping -> Ping.fromBytes(bytes)
         }
 
-        return PacketMessage(identifier, packet, timeDelta)
+        return PacketMessage(packet, timeDelta)
     }
 }
 
@@ -62,6 +64,9 @@ enum class PacketIdentifier(val byte: Byte): Packet {
     }
 
     companion object {
+        val SIZE_BYTES = Byte.SIZE_BYTES
+        val SIZE_BITS = SIZE_BYTES * 8
+
         fun fromBytes(bytes: ByteBuffer): PacketIdentifier {
             val byte = bytes.get()
 
@@ -81,7 +86,7 @@ enum class PacketIdentifier(val byte: Byte): Packet {
     }
 }
 
-enum class PhoneMouseState(val byte: Byte): Packet {
+enum class PhoneMouseStateIdentifier(val byte: Byte): Packet {
     Idle(0),
     Gravity(1),
     Touchpad(2),
@@ -89,15 +94,23 @@ enum class PhoneMouseState(val byte: Byte): Packet {
     Mouse(4);
 
     override fun toBytes(): ByteArray {
-        return byteArrayOf(this.byte)
+        return ByteBuffer
+            .allocate(PhoneMouseStateIdentifier.SIZE_BYTES)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .put(PacketIdentifier.SwitchController.toBytes())
+            .put(byte)
+            .array()
     }
 
-    override fun fromBytes(bytes: ByteBuffer): PhoneMouseState {
+    override fun fromBytes(bytes: ByteBuffer): PhoneMouseStateIdentifier {
         return Companion.fromBytes(bytes)
     }
 
     companion object {
-        fun fromBytes(bytes: ByteBuffer): PhoneMouseState {
+        val SIZE_BYTES = PacketIdentifier.SIZE_BYTES + Byte.SIZE_BYTES
+        val SIZE_BITS = SIZE_BYTES * 8
+
+        fun fromBytes(bytes: ByteBuffer): PhoneMouseStateIdentifier {
             val byte = bytes.get()
 
             return when (byte) {
@@ -112,6 +125,84 @@ enum class PhoneMouseState(val byte: Byte): Packet {
                     throw Error(error)
                 }
             }
+        }
+    }
+}
+
+class Area(val x: UShort, val y: UShort, val width: UShort, val height: UShort): Packet {
+    override fun toBytes(): ByteArray {
+        return ByteBuffer
+            .allocate(SIZE_BYTES)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .putShort(x.toShort())
+            .putShort(y.toShort())
+            .putShort(width.toShort())
+            .putShort(height.toShort())
+            .array()
+    }
+
+    override fun fromBytes(bytes: ByteBuffer): Area {
+        return Companion.fromBytes(bytes)
+    }
+
+    companion object {
+        val SIZE_BYTES = UShort.SIZE_BYTES * 4
+        val SIZE_BITS = SIZE_BYTES * 8
+
+        fun fromBytes(bytes: ByteBuffer): Area {
+            return Area(bytes.getShort().toUShort(), bytes.getShort().toUShort(), bytes.getShort().toUShort(), bytes.getShort().toUShort())
+        }
+    }
+}
+
+class TouchpadArea(val all: Area, val touchOnly: Area, val buttonLeft: Area, val buttonRight: Area): Packet {
+    override fun toBytes(): ByteArray {
+        return ByteBuffer
+            .allocate(SIZE_BYTES)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .put(all.toBytes())
+            .put(touchOnly.toBytes())
+            .put(buttonLeft.toBytes())
+            .put(buttonRight.toBytes())
+            .array()
+    }
+
+    override fun fromBytes(bytes: ByteBuffer): TouchpadArea {
+        return Companion.fromBytes(bytes)
+    }
+
+    companion object {
+        val SIZE_BYTES = Area.SIZE_BYTES * 4
+        val SIZE_BITS = SIZE_BYTES * 8
+
+        fun fromBytes(bytes: ByteBuffer): TouchpadArea {
+            return TouchpadArea(
+                Area.fromBytes(bytes),
+                Area.fromBytes(bytes),
+                Area.fromBytes(bytes),
+                Area.fromBytes(bytes)
+            )
+        }
+    }
+}
+
+class TouchpadState(val touchpadArea: TouchpadArea): Packet {
+    override fun toBytes(): ByteArray {
+        return ByteBuffer
+            .allocate(Byte.SIZE_BYTES + Byte.SIZE_BYTES)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .put(PhoneMouseStateIdentifier.Touchpad.toBytes())
+            .put(touchpadArea.toBytes())
+            .array()
+    }
+
+    override fun fromBytes(bytes: ByteBuffer): TouchpadState {
+        return Companion.fromBytes(bytes)
+    }
+
+    companion object {
+        fun fromBytes(bytes: ByteBuffer): TouchpadState {
+            return TouchpadState(TouchpadArea.fromBytes(bytes))
         }
     }
 }
@@ -137,8 +228,9 @@ class Ping: Packet {
 
 class Gravity(val x: Float, val y: Float, val z: Float): Packet {
     override fun toBytes(): ByteArray {
-        return ByteBuffer.allocate(Gravity.SIZE_BYTES)
+        return ByteBuffer.allocate(Byte.SIZE_BYTES + Gravity.SIZE_BYTES)
             .order(ByteOrder.LITTLE_ENDIAN)
+            .put(PacketIdentifier.Gravity.toBytes())
             .putFloat(x)
             .putFloat(y)
             .putFloat(z)
@@ -195,8 +287,11 @@ class TouchPoint(val id: Long, val x: Float, val y: Float): Packet {
 
 class TouchPoints(val touchPoints: List<TouchPoint>): Packet {
     override fun toBytes(): ByteArray {
-        val bytes = ByteBuffer.allocate(Byte.SIZE_BYTES + TouchPoint.SIZE_BYTES * touchPoints.size).order(ByteOrder.LITTLE_ENDIAN)
-        bytes.put(touchPoints.size.toByte())
+        val bytes = ByteBuffer
+            .allocate(Byte.SIZE_BYTES + Byte.SIZE_BYTES + TouchPoint.SIZE_BYTES * touchPoints.size)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .put(PacketIdentifier.Touch.toBytes())
+            .put(touchPoints.size.toByte())
 
         for (touchPoint in touchPoints) {
             bytes.put(touchPoint.toBytes())
@@ -231,7 +326,10 @@ enum class Key(var pressed: Boolean = false): Packet {
     BTN_RIGHT;
 
     override fun toBytes(): ByteArray {
-        val bytes = ByteBuffer.allocate(Short.SIZE_BYTES + 1).order(ByteOrder.LITTLE_ENDIAN)
+        val bytes = ByteBuffer
+            .allocate(Byte.SIZE_BYTES + Short.SIZE_BYTES + Byte.SIZE_BYTES)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .put(PacketIdentifier.Key.toBytes())
 
         val value = when (this) {
             BTN_LEFT -> 272
